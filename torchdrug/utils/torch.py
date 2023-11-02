@@ -95,6 +95,31 @@ def cuda(obj, *args, **kwargs):
 
     raise TypeError("Can't transfer object type `%s`" % type(obj))
 
+def mps(obj, *args, **kwargs):
+    """
+    Transfer any nested container of tensors to the MPS backend.
+    """
+    # Check if MPS is available
+    if not torch.backends.mps.is_available():
+        raise RuntimeError("MPS is not available. Make sure you have a compatible macOS version and MPS-enabled device.")
+
+    if hasattr(obj, "to"):
+    # Transfer the object to the MPS device
+        return obj.to('mps')
+    elif hasattr(obj, "mps"):
+        # Transfer the object to the MPS device
+        return obj.mps(*args, **kwargs)
+    elif isinstance(obj, (str, bytes)):
+        # Return non-tensor objects as is
+        return obj
+    elif isinstance(obj, dict):
+        return type(obj)({k: mps(v, *args, **kwargs) for k, v in obj.items()})
+    elif isinstance(obj, (list, tuple)):
+        return type(obj)(mps(x, *args, **kwargs) for x in obj)
+
+    raise TypeError("Can't transfer object type `%s`" % type(obj))
+
+
 
 def detach(obj):
     """

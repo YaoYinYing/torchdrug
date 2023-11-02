@@ -946,6 +946,18 @@ class Graph(core._MetaContainer):
             return type(self)(edge_list, edge_weight=self.edge_weight,
                               num_node=self.num_node, num_relation=self.num_relation,
                               meta_dict=self.meta_dict, **utils.cuda(self.data_dict, *args, **kwargs))
+        
+    def mps(self, *args, **kwargs):
+        edge_list = self.edge_list.cpu(*args, **kwargs).to(torch.device("mps"))
+        
+        if edge_list is self.edge_list:
+            return self
+        else:
+            return type(self)(edge_list, edge_weight=self.edge_weight,
+                              num_node=self.num_node, num_relation=self.num_relation,
+                              meta_dict=self.meta_dict, **utils.mps(self.data_dict, *args, **kwargs))
+
+
 
     def cpu(self):
         """
@@ -968,6 +980,8 @@ class Graph(core._MetaContainer):
         device = torch.device(device)
         if device.type == "cpu":
             return self.cpu(*args, **kwargs)
+        elif  device.type == "mps":
+            return self.mps(*args, **kwargs)
         else:
             return self.cuda(device, *args, **kwargs)
 

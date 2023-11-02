@@ -68,7 +68,10 @@ class Engine(core.Configurable):
         self.num_worker = num_worker
 
         if gpus is None:
-            self.device = torch.device("cpu")
+            if torch.backends.mps.is_available():
+                self.device = torch.device("mps")  
+            else:
+                self.device = torch.device("cpu")  
         else:
             if len(gpus) != self.world_size:
                 error_msg = "World size is %d but found %d GPUs in the argument"
@@ -139,7 +142,7 @@ class Engine(core.Configurable):
         model = self.model
         model.split = "train"
         if self.world_size > 1:
-            if self.device.type == "cuda":
+            if self.device.type == "cuda" or self.device.type == "mps":
                 model = nn.parallel.DistributedDataParallel(model, device_ids=[self.device],
                                                             find_unused_parameters=True)
             else:
@@ -157,6 +160,9 @@ class Engine(core.Configurable):
             for batch_id, batch in enumerate(islice(dataloader, batch_per_epoch)):
                 if self.device.type == "cuda":
                     batch = utils.cuda(batch, device=self.device)
+                elif self.device.type == "mps":
+                    batch = utils.mps(batch)
+
 
                 loss, metric = model(batch)
                 if not loss.requires_grad:
@@ -207,8 +213,10 @@ class Engine(core.Configurable):
         preds = []
         targets = []
         for batch in dataloader:
-            if self.device.type == "cuda":
+            if self.device.type == "cuda" :
                 batch = utils.cuda(batch, device=self.device)
+            elif self.device.type == "mps" :
+                batch = utils.mps(batch)
 
             pred, target = model.predict_and_target(batch)
             preds.append(pred)
