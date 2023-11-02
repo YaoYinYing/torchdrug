@@ -67,7 +67,7 @@ class Engine(core.Configurable):
         self.gradient_interval = gradient_interval
         self.num_worker = num_worker
 
-        if gpus is None:
+        if gpus is None or (not torch.cuda.is_available()):
             self.device = torch.device("cpu")
         else:
             if len(gpus) != self.world_size:
